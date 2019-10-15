@@ -10,10 +10,10 @@
 
 
 #include "stm32f4xx.h"
-			
+#include "display.h"
 
 int main(void)
 {
-
+  FDDGPIO_init();
 	for(;;);
 }
