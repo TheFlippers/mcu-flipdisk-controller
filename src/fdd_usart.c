@@ -1,0 +1,42 @@
+#include "fdd_usart.h"
+
+void FDDusart_init() {
+  FDDusart_GPIO_init();
+  FDDusart_usart_init();
+}
+
+void FDDusart_GPIO_init() {
+  RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOBEN;
+
+  // PA2 => Tx
+  // PA3 => Rx
+  GPIOA->MODER &= ~(GPIO_MODER_MODER2 | GPIO_MODER_MODER3);
+  GPIOA->MODER |= GPIO_MODER_MODER2_1 | GPIO_MODER_MODER3_1;
+  GPIOA->AFR[0] &= ~((0xf<<(4*2)) | (0xf<<(4*3)));
+  GPIOA->AFR[0] |= (7<<(4*2)) | (7<<(4*3));
+
+  /*
+  GPIOB->MODER &= ~(GPIO_MODER_MODER3 | GPIO_MODER_MODER4);
+  GPIOB->MODER |= GPIO_MODER_MODER3_0 | GPIO_MODER_MODER4_0;
+  GPIOB->BSRRH = 0b11<<3;
+  */
+}
+
+void FDDusart_usart_init() {
+  RCC->APB1ENR |= RCC_APB1ENR_USART2EN;
+
+  NVIC->ISER[1] = 1<<(USART2_IRQn - 32);
+
+  USART2->CR1 &= ~(USART_CR1_OVER8 | USART_CR1_M | USART_CR1_PCE
+      | USART_CR1_PEIE | USART_CR1_TCIE);
+  USART2->CR1 |= (USART_CR1_TXEIE | USART_CR1_RXNEIE /*| USART_CR1_IDLEIE*/);
+
+  USART2->CR2 &= ~(USART_CR2_LINEN | USART_CR2_STOP | USART_CR2_CLKEN);
+
+  USART2->CR3 &= ~(USART_CR3_HDSEL);
+
+  USART2->BRR &= ~(USART_BRR_DIV_Mantissa | USART_BRR_DIV_Fraction);
+  USART2->BRR |= (8<<4) | (0b1011);
+
+  USART2->CR1 |= USART_CR1_UE | USART_CR1_TE | USART_CR1_RE;
+}
