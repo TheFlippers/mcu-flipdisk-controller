@@ -1,8 +1,7 @@
 #include "fdd_spi.h"
 
-void FDDspi_init(uint8_t* pixels, uint8_t* neighbors) {
+void FDDspi_init() {
   FDDspi_GPIO_init();
-  // FDDspi_dma_init(pixels, neighbors);
   FDDspi_slave_init();
 }
 

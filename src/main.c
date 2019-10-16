@@ -32,7 +32,7 @@ int main(void) {
   GPIOA->MODER |= GPIO_MODER_MODER5_0;
 
   FDDdisplay_init();
-  FDDspi_init(PIXELS, NEIGHBORS);
+  FDDspi_init();
 
   FDDdisplay_draw(prev, next);
   for(int i=0; i<7; ++i) {
