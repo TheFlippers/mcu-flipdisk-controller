@@ -13,7 +13,7 @@
 #include "main.h"
 
 // TODO change these to be very apparent what is sent
-uint8_t NEIGHBORS[5] = { 1, 0, 2, 3, 4 };
+uint8_t NEIGHBORS[5] = { 1, 0 };
 uint8_t PIXELS[MAX_ROWS+1] = { 0 };
 uint8_t N_POS = 0;
 uint8_t P_POS = 0;
@@ -28,11 +28,12 @@ int main(void) {
   uint8_t prev[7] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
   RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
-  GPIOA->MODER &= ~GPIO_MODER_MODER5;
+  GPIOA->MODER &= ~(GPIO_MODER_MODER5);
   GPIOA->MODER |= GPIO_MODER_MODER5_0;
 
   FDDdisplay_init();
-  FDDspi_init();
+  FDDspi_spi_init();
+  FDDusart_usart_init();
 
   FDDdisplay_draw(prev, next);
   for(int i=0; i<7; ++i) {
@@ -65,5 +66,16 @@ void SPI2_IRQHandler() {
   }
   if (status & SPI_SR_RXNE) {
       PIXELS[P_POS++] = SPI2->DR;
+  }
+}
+
+void USART2_IRQHandler() {
+  uint32_t status = USART2->SR;
+
+  if (status & USART_SR_TXE) {
+    USART2->DR = NEIGHBORS[0];
+  } else if (status & USART_SR_RXNE) {
+    NEIGHBORS[1] = USART2->DR;
+    GPIOA->ODR = GPIOA->ODR ^ (1<<5);
   }
 }

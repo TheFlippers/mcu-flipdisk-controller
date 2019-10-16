@@ -1,6 +1,6 @@
 #include "fdd_spi.h"
 
-void FDDspi_init() {
+void FDDspi_spi_init() {
   FDDspi_GPIO_init();
   FDDspi_slave_init();
 }

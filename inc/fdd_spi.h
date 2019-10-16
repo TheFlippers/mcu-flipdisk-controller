@@ -3,7 +3,7 @@
 
 #include "stm32f4xx.h"
 
-void FDDspi_init();
+void FDDspi_spi_init();
 
 void FDDspi_GPIO_init();
 void FDDspi_slave_init();
