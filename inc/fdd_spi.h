@@ -3,11 +3,11 @@
 
 #include "stm32f4xx.h"
 
-void FDDspi_display_init(uint8_t*, uint8_t*);
+void FDDspi_init(uint8_t*, uint8_t*);
 
-void FDDGPIO_init();
+void FDDspi_GPIO_init();
 void FDDspi_slave_init();
 void FDDspi_slave_wDMA_init();
-void FDDdma_init(uint8_t*, uint8_t*);
+void FDDspi_dma_init(uint8_t*, uint8_t*);
 
 #endif

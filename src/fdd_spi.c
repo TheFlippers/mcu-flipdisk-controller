@@ -1,12 +1,12 @@
 #include "fdd_spi.h"
 
-void FDDdisplay_spi_init(uint8_t* pixels, uint8_t* neighbors) {
-  FDDGPIO_init();
-  FDDdma_init(pixels, neighbors);
+void FDDspi_init(uint8_t* pixels, uint8_t* neighbors) {
+  FDDspi_GPIO_init();
+  FDDspi_dma_init(pixels, neighbors);
   FDDspi_slave_wDMA_init();
 }
 
-void FDDGPIO_init() {
+void FDDspi_GPIO_init() {
   // green led status as indicator
   RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
   GPIOA->MODER &= ~GPIO_MODER_MODER5;
@@ -83,7 +83,7 @@ void FDDspi_slave_wDMA_init() {
   SPI2->CR1 |= SPI_CR1_SPE;
 }
 
-void FDDdma_init(uint8_t* pixels, uint8_t* neighbors) {
+void FDDspi_dma_init(uint8_t* pixels, uint8_t* neighbors) {
   RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN;
 
   // TODO Should these be enabled after receiving the first (control) byte
