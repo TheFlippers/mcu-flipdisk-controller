@@ -10,10 +10,14 @@
 
 
 #include "stm32f4xx.h"
-#include "display.h"
+#include "main.h"
 
 int main(void)
 {
-  FDDGPIO_init();
+  uint8_t pixels[8] = { 0 };
+  uint8_t neighbors[5] = { DISPLAY_ID, 0 };
+
+  FDDdisplay_init();
+  FDDdisplay_spi_init(pixels, neighbors);
 	for(;;);
 }
