@@ -90,13 +90,16 @@ void FDDdisplay_draw(uint8_t* prev, uint8_t* next) {
   uint8_t to_black[7];
   uint8_t to_white[7];
 
-  to_black[0] = prev[0] & ~next[0];
-  to_white[0] = ~prev[0] & next[0];
-
   for(int i=0; i<7; ++i) {
     uint8_t pos = 0x80;
 
     for(int j=0; j<7; ++j) {
+      to_black[i] = prev[i] & ~next[i];
+      to_white[i] = ~prev[i] & next[i];
+
+      while((TIM2->CR1 & TIM_CR1_CEN) || (TIM5->CR1 & TIM_CR1_CEN));
+
+      // no else because pixel may not need updated
       if(to_black[i] & pos) {
         GPIOC->BSRRH = 0xffff;
         GPIOC->BSRRL = (i<<10) | (j<<5);
@@ -106,12 +109,8 @@ void FDDdisplay_draw(uint8_t* prev, uint8_t* next) {
         GPIOC->BSRRL = (i<<10) | (j<<5);
         TIM5->CR1 |= TIM_CR1_CEN;
       }
-      if(i < 6) {
-        to_black[i+1] = prev[i+1] & ~next[i+1];
-        to_white[i+1] = ~prev[i+1] & next[i+1];
-      }
+
       pos >>= 1;
-      while((TIM2->CR1 & TIM_CR1_CEN) || (TIM5->CR1 & TIM_CR1_CEN));
     }
     GPIOC->BSRRH = 0xffff;
   }
