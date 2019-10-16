@@ -2,16 +2,11 @@
 
 void FDDspi_init(uint8_t* pixels, uint8_t* neighbors) {
   FDDspi_GPIO_init();
-  FDDspi_dma_init(pixels, neighbors);
-  FDDspi_slave_wDMA_init();
+  // FDDspi_dma_init(pixels, neighbors);
+  FDDspi_slave_init();
 }
 
 void FDDspi_GPIO_init() {
-  // green led status as indicator
-  RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
-  GPIOA->MODER &= ~GPIO_MODER_MODER5;
-  GPIOA->MODER |= GPIO_MODER_MODER5_0;
-
   // gpio for spi communication
   // PB10 => SPI2_SCK
   // PB12 => SPI2_NSS
@@ -94,29 +89,29 @@ void FDDspi_dma_init(uint8_t* pixels, uint8_t* neighbors) {
       DMA_SxCR_PINC | DMA_SxCR_DIR);
 
   DMA1_Stream3->CR |= (
-      DMA_SxCR_MINC | DMA_SxCR_CIRC | DMA_SxCR_PFCTRL /*|
-      DMA_SxCR_TCIE*/);
+      DMA_SxCR_MINC /*| DMA_SxCR_CIRC*/ | DMA_SxCR_PFCTRL |
+      DMA_SxCR_TCIE);
 
+  // TODO this should change when first byte processing is finished
   DMA1_Stream3->NDTR = 8;
   DMA1_Stream3->M0AR = (uint32_t) pixels;
   DMA1_Stream3->PAR = (uint32_t) &(SPI2->DR);
 
-  // NVIC->ISER[0] |= 1<<DMA1_Stream3_IRQn;
+  NVIC->ISER[0] |= 1<<DMA1_Stream3_IRQn;
 
-  DMA1_Stream3->CR |= DMA_SxCR_EN;
 
   DMA1_Stream4->CR &= ~(
       DMA_SxCR_CHSEL | DMA_SxCR_MSIZE | DMA_SxCR_PSIZE |
       DMA_SxCR_PINC | DMA_SxCR_DIR);
 
   DMA1_Stream4->CR |= (
-      DMA_SxCR_MINC | DMA_SxCR_CIRC | DMA_SxCR_DIR_0 | DMA_SxCR_PFCTRL);
+      DMA_SxCR_MINC /*| DMA_SxCR_CIRC*/ | DMA_SxCR_DIR_0 | DMA_SxCR_PFCTRL);
 
-  DMA1_Stream4->NDTR = 8;
+  DMA1_Stream4->NDTR = 5;
   DMA1_Stream4->M0AR = (uint32_t) neighbors;
   DMA1_Stream4->PAR = (uint32_t) &(SPI2->DR);
 
   // NVIC->ISER[0] |= 1<<DMA1_Stream4_IRQn;
-
+  DMA1_Stream3->CR |= DMA_SxCR_EN;
   DMA1_Stream4->CR |= DMA_SxCR_EN;
 }
