@@ -1,12 +1,12 @@
 #include "fdd_display.h"
 
 void FDDdisplay_init() {
-  FDDGPIO_init();
-  FDDtimer_init();
+  FDDdisplay_GPIO_init();
+  FDDdisplay_timer_init();
 }
 
 #ifndef __FDD_DIRECT_SEL_H
-void FDDGPIO_init() {
+void FDDdisplay_GPIO_init() {
   RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOCEN;
 
   // PA0 and PA1 are enables controlled by timers
@@ -29,7 +29,7 @@ void FDDGPIO_init() {
       | GPIO_MODER_MODER12_0);
 }
 
-void FDDtimer_init() {
+void FDDdisplay_timer_init() {
   RCC->APB1ENR |= RCC_APB1ENR_TIM2EN | RCC_APB1ENR_TIM5EN;
   // CCER -> CCxP = 1 ==> active low
   TIM2->CR1 &= ~(TIM_CR1_CKD | TIM_CR1_ARPE | TIM_CR1_CMS | TIM_CR1_DIR
@@ -74,7 +74,7 @@ void FDDtimer_init() {
   TIM5->CCR1 = 2;
 }
 
-void FDDdraw(uint8_t* prev, uint8_t* next) {
+void FDDdisplay_draw(uint8_t* prev, uint8_t* next) {
   // TODO finish draw function
   // process:
   // 1. ensure driver output enables all 0
@@ -90,42 +90,20 @@ void FDDdraw(uint8_t* prev, uint8_t* next) {
   uint8_t to_black[7];
   uint8_t to_white[7];
 
-  // prev     = 11110000
-  // next     = 00001111
-  // to_black = 11110000
-  // to_white = 00001111
-  //
-  // prev     = 11001100; ~prev = 00110011;
-  // next     = 11110000; ~next = 00001111;
-  //
-  // to_black = prev & ~next
-  // to_white = ~prev & next
-  //
-  // to_black = 00001100
-  // to_white = 00110000
-
   to_black[0] = prev[0] & ~next[0];
   to_white[0] = ~prev[0] & next[0];
 
-  // GPIOC->BSRRL =
   for(int i=0; i<7; ++i) {
     uint8_t pos = 0x80;
 
-    // TODO check that update event reset CNT and ARR in one pulse mode
     for(int j=0; j<7; ++j) {
       if(to_black[i] & pos) {
-        // TODO make sure this is the correct timer to enable
         GPIOC->BSRRH = 0xffff;
         GPIOC->BSRRL = (i<<10) | (j<<5);
-        TIM2->PSC = FDD_PULSE_PSC;
-        TIM2->ARR = FDD_PULSE_ARR;
         TIM2->CR1 |= TIM_CR1_CEN;
       } else if (to_white[i] & pos) {
-        // TODO make sure this is the correct timer to enable
         GPIOC->BSRRH = 0xffff;
         GPIOC->BSRRL = (i<<10) | (j<<5);
-        TIM5->PSC = FDD_PULSE_PSC;
-        TIM5->ARR = FDD_PULSE_PSC;
         TIM5->CR1 |= TIM_CR1_CEN;
       }
       if(i < 6) {

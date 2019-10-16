@@ -29,8 +29,8 @@
 // #endif
 
 void FDDdisplay_init();
-void FDDGPIO_init();
-void FDDtimer_init();
-void FDDdraw(uint8_t*, uint8_t*);
+void FDDdisplay_GPIO_init();
+void FDDdisplay_timer_init();
+void FDDdisplay_draw(uint8_t*, uint8_t*);
 
 #endif
