@@ -41,4 +41,4 @@ startup/
 Debug/
 LinkerScript.ld
 NUCLEO-F401RE.xml
-mcu-spi-slave Run.cfg
+mcu-flipdisk-controller Debug.cfg
