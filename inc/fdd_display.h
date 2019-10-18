@@ -22,8 +22,8 @@
 #define FDD_COL_ADDR2 (1<<12)
 #endif
 
-#define FDD_PULSE_PSC (160 - 1)
-#define FDD_PULSE_ARR (160 - 1)
+#define FDD_PULSE_PSC (200 - 1)
+#define FDD_PULSE_ARR (200 - 1)
 // #ifdef __FDD_DIRECT_SEL_H
 // // TODO select outputs in case muxes aren't working
 // #endif
@@ -32,5 +32,9 @@ void FDDdisplay_init();
 void FDDdisplay_GPIO_init();
 void FDDdisplay_timer_init();
 void FDDdisplay_draw(uint8_t*, uint8_t*);
+
+// utility functions for updating display
+void FDDset_pixel(uint8_t*, uint8_t*, int, int);
+void FDDunset_pixel(uint8_t*, uint8_t*, int, int);
 
 #endif

@@ -91,15 +91,15 @@ void FDDdisplay_draw(uint8_t* prev, uint8_t* next) {
   uint8_t to_white[7];
 
   for(int i=0; i<7; ++i) {
-    uint8_t pos = 0x80;
+    // uint8_t pos = 0b01000000;
+    int pos = 1;
 
-    for(int j=0; j<7; ++j) {
+    for(int j=0; j<8; ++j) {
       to_black[i] = prev[i] & ~next[i];
       to_white[i] = ~prev[i] & next[i];
 
       while((TIM2->CR1 & TIM_CR1_CEN) || (TIM5->CR1 & TIM_CR1_CEN));
 
-      // no else because pixel may not need updated
       if(to_black[i] & pos) {
         GPIOC->BSRRH = 0xffff;
         GPIOC->BSRRL = (i<<10) | (j<<5);
@@ -110,10 +110,60 @@ void FDDdisplay_draw(uint8_t* prev, uint8_t* next) {
         TIM5->CR1 |= TIM_CR1_CEN;
       }
 
-      pos >>= 1;
+      pos = pos<<1;
     }
     GPIOC->BSRRH = 0xffff;
   }
+}
+//void FDDdisplay_draw(uint8_t* prev, uint8_t* next) {
+//  // TODO finish draw function
+//  // process:
+//  // 1. ensure driver output enables all 0
+//  // 2. update shift regs
+//  //    a. set data lines to next output
+//  //    b. pulse clock signal
+//  //    c. perform 7x total
+//  // 3. pulse shift enable
+//  // 4. enable driver outputs
+//  //    a. row data should always be enabled
+//  //    b. only one of colomn data should be enabled at a time
+//
+//  uint8_t to_black[7];
+//  uint8_t to_white[7];
+//
+//  for(int i=0; i<7; ++i) {
+//    uint8_t pos = 0x40;
+//
+//    for(int j=0; j<7; ++j) {
+//      to_black[i] = prev[i] & ~next[i];
+//      to_white[i] = ~prev[i] & next[i];
+//
+//      while((TIM2->CR1 & TIM_CR1_CEN) || (TIM5->CR1 & TIM_CR1_CEN));
+//
+//      // no else because pixel may not need updated
+//      if(to_black[i] & pos) {
+//        GPIOC->BSRRH = 0xffff;
+//        GPIOC->BSRRL = (i<<10) | (j<<5);
+//        TIM2->CR1 |= TIM_CR1_CEN;
+//      } else if (to_white[i] & pos) {
+//        GPIOC->BSRRH = 0xffff;
+//        GPIOC->BSRRL = (i<<10) | (j<<5);
+//        TIM5->CR1 |= TIM_CR1_CEN;
+//      }
+//
+//      pos >>= 1;
+//    }
+//    GPIOC->BSRRH = 0xffff;
+//  }
+//}
+
+// utility functions
+void FDDset_pixel(uint8_t* prev, uint8_t* next, int col, int row) {
+  next[row] = prev[row] | (0b01000000>>col);
+}
+
+void FDDunset_pixel(uint8_t* prev, uint8_t* next, int col, int row) {
+  next[row] = prev[row] & ~(0b01000000>>col);
 }
 
 #endif

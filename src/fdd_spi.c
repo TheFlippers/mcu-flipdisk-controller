@@ -14,6 +14,9 @@ void FDDspi_GPIO_init() {
   GPIOB->MODER &= ~(GPIO_MODER_MODER10 | GPIO_MODER_MODER12);
   GPIOB->MODER |= (GPIO_MODER_MODER10_1 | GPIO_MODER_MODER12_1);
 
+  GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR12);
+  GPIOB->PUPDR |= GPIO_PUPDR_PUPDR12_0;
+
   // odd that GPIO_AFR(L/H)_AFSELx isn't defined
   GPIOB->AFR[1] &= ~(0xF<<(4*2) | 0xF<<(4*4));
   GPIOB->AFR[1] |= (5<<(4*2)) | (5<<(4*4));

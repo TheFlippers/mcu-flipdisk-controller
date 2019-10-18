@@ -13,37 +13,34 @@
 #include "main.h"
 
 // TODO change these to be very apparent what is sent
-uint8_t NEIGHBORS[5] = { 1, 0 };
+uint8_t NEIGHBORS[5] = { 1, 'x', 'y', 'z', 0 };
 uint8_t PIXELS[MAX_ROWS+1] = { 0 };
+uint8_t NEI_POS = 1;
 uint8_t N_POS = 0;
 uint8_t P_POS = 0;
+uint8_t UPDATE = 0;
 
 int main(void) {
   // XXX first neighbor byte is self id: change this for different display
   // controllers
   // TODO fix flow to process first byte from pi
 
-
   uint8_t next[7] = { 0 };
   uint8_t prev[7] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
-  RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
-  GPIOA->MODER &= ~(GPIO_MODER_MODER5);
-  GPIOA->MODER |= GPIO_MODER_MODER5_0;
-
   FDDdisplay_init();
   FDDspi_spi_init();
-  FDDusart_usart_init();
+  // FDDusart_init();
 
   FDDdisplay_draw(prev, next);
   for(int i=0; i<7; ++i) {
     prev[i] = next[i];
   }
   for(;;) {
-    if(P_POS == MAX_ROWS + 1) {
+    if(UPDATE) {
       P_POS = 0;
       N_POS = 0;
-      GPIOA->BSRRL = 1 << 5;
+      UPDATE = 0;
 
       for (int i=0; i<7; ++i) {
         next[i] = PIXELS[i+1];
@@ -59,23 +56,38 @@ int main(void) {
 
 void SPI2_IRQHandler() {
   uint16_t status = SPI2->SR;
+    if (status & SPI_SR_RXNE) {
+      PIXELS[P_POS++] = SPI2->DR;
+  }
   if (status & SPI_SR_TXE) {
     if (N_POS < 5) {
       SPI2->DR = NEIGHBORS[N_POS++];
+    } else {
+      SPI2->DR = 0;
     }
   }
-  if (status & SPI_SR_RXNE) {
-      PIXELS[P_POS++] = SPI2->DR;
+  if (P_POS == 8) {
+    UPDATE = 1;
   }
 }
 
 void USART2_IRQHandler() {
   uint32_t status = USART2->SR;
 
-  if (status & USART_SR_TXE) {
-    USART2->DR = NEIGHBORS[0];
-  } else if (status & USART_SR_RXNE) {
-    NEIGHBORS[1] = USART2->DR;
-    GPIOA->ODR = GPIOA->ODR ^ (1<<5);
+  if (status & USART_SR_RXNE) {
+    NEIGHBORS[NEI_POS++] = USART2->DR;
+    if (NEI_POS == 5) {
+      NEI_POS = 1;
+    }
+
+    // GPIOA->ODR = GPIOA->IDR ^ (1<<5);
   }
+}
+
+void TIM3_IRQHandler() {
+  TIM3->SR &= ~(TIM_SR_UIF);
+  if (USART2->SR & USART_SR_TC) {
+    USART2->DR = NEIGHBORS[0];
+  }
+  GPIOA->ODR = GPIOA->IDR ^ (1<<5);
 }
