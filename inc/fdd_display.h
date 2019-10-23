@@ -32,6 +32,7 @@ void FDDdisplay_init();
 void FDDdisplay_GPIO_init();
 void FDDdisplay_timer_init();
 void FDDdisplay_draw(uint8_t*, uint8_t*);
+void FDDdisplay_full(uint8_t*, uint8_t*);
 
 // utility functions for updating display
 void FDDset_pixel(uint8_t*, uint8_t*, int, int);

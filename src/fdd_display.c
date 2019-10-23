@@ -30,22 +30,28 @@ void FDDdisplay_GPIO_init() {
 }
 
 void FDDdisplay_timer_init() {
-  RCC->APB1ENR |= RCC_APB1ENR_TIM2EN | RCC_APB1ENR_TIM5EN;
+  RCC->APB1ENR |= RCC_APB1ENR_TIM2EN | RCC_APB1ENR_TIM3EN | RCC_APB1ENR_TIM5EN;
+
   // CCER -> CCxP = 1 ==> active low
   TIM2->CR1 &= ~(TIM_CR1_CKD | TIM_CR1_ARPE | TIM_CR1_CMS | TIM_CR1_DIR
+      | TIM_CR1_UDIS | TIM_CR1_CEN);
+  TIM3->CR1 &= ~(TIM_CR1_CKD | TIM_CR1_ARPE | TIM_CR1_CMS | TIM_CR1_DIR
       | TIM_CR1_UDIS | TIM_CR1_CEN);
   TIM5->CR1 &= ~(TIM_CR1_CKD | TIM_CR1_ARPE | TIM_CR1_CMS | TIM_CR1_DIR
       | TIM_CR1_UDIS | TIM_CR1_CEN);
 
   TIM2->CR1 |= (TIM_CR1_OPM | TIM_CR1_URS);
+  TIM3->CR1 |= (TIM_CR1_OPM | TIM_CR1_URS);
   TIM5->CR1 |= (TIM_CR1_OPM | TIM_CR1_URS);
 
   TIM2->SMCR &= ~TIM_SMCR_SMS;
+  TIM3->SMCR &= ~TIM_SMCR_SMS;
   TIM5->SMCR &= ~TIM_SMCR_SMS;
 
   // TODO may not need these
   // TODO may need CC1G/CC2G
   TIM2->EGR |= TIM_EGR_UG;
+  TIM3->EGR |= TIM_EGR_UG;
   TIM5->EGR |= TIM_EGR_UG;
 
   // TIM2 uses channel 2 for this
@@ -58,6 +64,8 @@ void FDDdisplay_timer_init() {
       | TIM_CCMR1_OC1FE | TIM_CCMR1_CC1S);
   TIM5->CCMR1 |= TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1;
 
+  // TIM3 doesn't want to output anything during this time
+
   TIM2->CCER &= ~TIM_CCER_CC2NP;
   TIM5->CCER &= ~TIM_CCER_CC1NP;
 
@@ -65,9 +73,11 @@ void FDDdisplay_timer_init() {
   TIM5->CCER |= TIM_CCER_CC1P | TIM_CCER_CC1E;
 
   TIM2->PSC = FDD_PULSE_PSC;
+  TIM3->PSC = FDD_PULSE_PSC;
   TIM5->PSC = FDD_PULSE_PSC;
 
   TIM2->ARR = FDD_PULSE_ARR;
+  TIM3->ARR = FDD_PULSE_ARR;
   TIM5->ARR = FDD_PULSE_ARR;
 
   TIM2->CCR2 = 2;       // set to active as soon as possible
@@ -115,47 +125,55 @@ void FDDdisplay_draw(uint8_t* prev, uint8_t* next) {
     GPIOC->BSRRH = 0xffff;
   }
 }
-//void FDDdisplay_draw(uint8_t* prev, uint8_t* next) {
-//  // TODO finish draw function
-//  // process:
-//  // 1. ensure driver output enables all 0
-//  // 2. update shift regs
-//  //    a. set data lines to next output
-//  //    b. pulse clock signal
-//  //    c. perform 7x total
-//  // 3. pulse shift enable
-//  // 4. enable driver outputs
-//  //    a. row data should always be enabled
-//  //    b. only one of colomn data should be enabled at a time
-//
-//  uint8_t to_black[7];
-//  uint8_t to_white[7];
-//
-//  for(int i=0; i<7; ++i) {
-//    uint8_t pos = 0x40;
-//
-//    for(int j=0; j<7; ++j) {
-//      to_black[i] = prev[i] & ~next[i];
-//      to_white[i] = ~prev[i] & next[i];
-//
-//      while((TIM2->CR1 & TIM_CR1_CEN) || (TIM5->CR1 & TIM_CR1_CEN));
-//
-//      // no else because pixel may not need updated
-//      if(to_black[i] & pos) {
-//        GPIOC->BSRRH = 0xffff;
-//        GPIOC->BSRRL = (i<<10) | (j<<5);
-//        TIM2->CR1 |= TIM_CR1_CEN;
-//      } else if (to_white[i] & pos) {
-//        GPIOC->BSRRH = 0xffff;
-//        GPIOC->BSRRL = (i<<10) | (j<<5);
-//        TIM5->CR1 |= TIM_CR1_CEN;
-//      }
-//
-//      pos >>= 1;
-//    }
-//    GPIOC->BSRRH = 0xffff;
-//  }
-//}
+
+void FDDdisplay_full(uint8_t* prev, uint8_t* next) {
+  // TODO finish draw function
+  // process:
+  // 1. ensure driver output enables all 0
+  // 2. update shift regs
+  //    a. set data lines to next output
+  //    b. pulse clock signal
+  //    c. perform 7x total
+  // 3. pulse shift enable
+  // 4. enable driver outputs
+  //    a. row data should always be enabled
+  //    b. only one of colomn data should be enabled at a time
+
+  uint8_t to_black[7];
+  uint8_t to_white[7];
+
+  for(int i=0; i<7; ++i) {
+    // uint8_t pos = 0b01000000;
+    uint8_t pos = 0b00000001;
+
+    for(int j=0; j<7; ++j) {
+      to_black[i] = prev[i] & ~next[i];
+      to_white[i] = ~prev[i] & next[i];
+
+      while((TIM2->CR1 & TIM_CR1_CEN)
+          || (TIM5->CR1 & TIM_CR1_CEN)
+          || (TIM3->CR1 & TIM_CR1_CEN)
+      );
+      // for(int k=0; k<5000; k++);
+
+      // no else because pixel may not need updated
+      if(to_black[i] & pos) {
+        GPIOC->BSRRH = 0xffff;
+        GPIOC->BSRRL = (i<<10) | (j<<5);
+        TIM2->CR1 |= TIM_CR1_CEN;
+      } else if (to_white[i] & pos) {
+        GPIOC->BSRRH = 0xffff;
+        GPIOC->BSRRL = (i<<10) | (j<<5);
+        TIM5->CR1 |= TIM_CR1_CEN;
+      } else {
+        TIM3->CR1 |= TIM_CR1_CEN;
+      }
+
+      pos = pos<<1;
+    }
+    GPIOC->BSRRH = 0xffff;
+  }
+}
 
 // utility functions
 void FDDset_pixel(uint8_t* prev, uint8_t* next, int col, int row) {
