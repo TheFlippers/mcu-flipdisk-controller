@@ -13,7 +13,7 @@
 #include "main.h"
 
 // TODO change these to be very apparent what is sent
-uint8_t NEIGHBORS[5] = { 1, 'x', 'y', 'z', 0 };
+uint8_t NEIGHBORS[5] = { 0, 'x', 'y', 'z', 0 };
 uint8_t PIXELS[MAX_ROWS+1] = { 0 };
 uint8_t NEI_POS = 1;
 uint8_t N_POS = 0;
@@ -45,7 +45,7 @@ int main(void) {
       for (int i=0; i<7; ++i) {
         next[i] = PIXELS[i+1];
       }
-      FDDdisplay_draw(prev, next);
+      FDDdisplay_full(prev, next);
       // DMA1->LIFCR = DMA_LIFCR_CTCIF3;
       for(int i=0; i<7; ++i) {
         prev[i] = next[i];
@@ -84,8 +84,8 @@ void USART2_IRQHandler() {
   }
 }
 
-void TIM3_IRQHandler() {
-  TIM3->SR &= ~(TIM_SR_UIF);
+void TIM4_IRQHandler() {
+  TIM4->SR &= ~(TIM_SR_UIF);
   if (USART2->SR & USART_SR_TC) {
     USART2->DR = NEIGHBORS[0];
   }
