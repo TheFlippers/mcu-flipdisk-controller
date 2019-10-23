@@ -7,6 +7,7 @@ void FDDusart_init();
 
 void FDDusart_GPIO_init();
 void FDDusart_usart_init();
+void FDDusart_timer_init();
 
 #endif
 
