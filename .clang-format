@@ -1,0 +1,23 @@
+Language: Cpp
+BasedOnStyle: llvm
+IndentWidth: 2
+ColumnLimit: 80
+AlignConsecutiveMacros: true
+AlignTrailingComments: true
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+BraceWrapping:
+    AfterCaseLabel: false
+    AfterEnum: false
+    AfterControlStatement: false
+    AfterFunction: false
+    AfterStruct: false
+    BeforeElse: false
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeTernaryOperators: true
+IndentCaseLabels: true
+ReflowComments: true
+SortIncludes: true
+SpaceBeforeParens: ControlStatements
+SpaceBeforeAssignmentOperators: true
+UseTab: Never
