@@ -42,3 +42,5 @@ Debug/
 LinkerScript.ld
 NUCLEO-F401RE.xml
 mcu-flipdisk-controller Debug.cfg
+mcu-flipdisk-controller Run.cfg
+
