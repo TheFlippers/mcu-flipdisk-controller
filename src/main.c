@@ -155,7 +155,8 @@ void SPI2_IRQHandler() {
   }
 }
 
-void USART2_IRQHandler() {
+// TODO need to move to next position if no signals detected
+void USART1_IRQHandler() {
   uint32_t status = USART2->SR;
 
   if (status & USART_SR_RXNE) {
@@ -165,7 +166,15 @@ void USART2_IRQHandler() {
     }
     GPIOB->BSRRH = 0b11 << 3;
     GPIOB->BSRRL = RECV_NPOS << 3;
+  } else if (status & USART_SR_IDLE) {
+    USART1->SR &= ~USART_SR_IDLE;
+    NEIGHBORS[RECV_NPOS++] = 0;
   }
+  if (RECV_NPOS == 5) {
+    RECV_NPOS = 1;
+  }
+  GPIOB->BSRRH = 0b11 << 3;
+  GPIOB->BSRRL = RECV_NPOS << 3;
 }
 
 void TIM4_IRQHandler() {

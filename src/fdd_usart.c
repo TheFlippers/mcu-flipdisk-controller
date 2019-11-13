@@ -7,41 +7,60 @@ void FDDusart_init() {
 }
 
 void FDDusart_GPIO_init() {
-  RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOBEN;
+  // RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOBEN;
+  RCC->AHB1ENR |= /*RCC_AHB1ENR_GPIOAEN |*/ RCC_AHB1ENR_GPIOBEN;
 
   // PA2 => Tx
   // PA3 => Rx
-  GPIOA->MODER &= ~(GPIO_MODER_MODER2 | GPIO_MODER_MODER3);
-  GPIOA->MODER |= GPIO_MODER_MODER2_1 | GPIO_MODER_MODER3_1;
-  GPIOA->AFR[0] &= ~((0xf<<(4*2)) | (0xf<<(4*3)));
-  GPIOA->AFR[0] |= (0x07<<(4*2)) | (0x07<<(4*3));
+  // XXX trying pb6 pb7
+  // TODO check if PA2/3 work still
+  // PB6 => Tx
+  // PB7 => Rx
+  GPIOB->MODER &= ~(GPIO_MODER_MODER6 | GPIO_MODER_MODER7);
+  GPIOB->MODER |= GPIO_MODER_MODER6_1 | GPIO_MODER_MODER7_1;
+  GPIOB->AFR[0] &= ~((0xf<<(4*6)) | (0xf<<(4*7)));
+  GPIOB->AFR[0] |= (0x07<<(4*6)) | (0x07<<(4*7));
 
-  /*
+  // GPIOA->MODER &= ~(GPIO_MODER_MODER2 | GPIO_MODER_MODER3);
+  // GPIOA->MODER |= GPIO_MODER_MODER2_1 | GPIO_MODER_MODER3_1;
+  // GPIOA->AFR[0] &= ~((0xf<<(4*2)) | (0xf<<(4*3)));
+  // GPIOA->AFR[0] |= (0x07<<(4*2)) | (0x07<<(4*3));
+
+  // GPIOB 4 and GPIOB 3 used to control mux
   GPIOB->MODER &= ~(GPIO_MODER_MODER3 | GPIO_MODER_MODER4);
   GPIOB->MODER |= GPIO_MODER_MODER3_0 | GPIO_MODER_MODER4_0;
   GPIOB->BSRRH = 0b11<<3;
-  */
 }
 
 void FDDusart_usart_init() {
-  RCC->APB1ENR |= RCC_APB1ENR_USART2EN;
+  // messages are send LSB
+  // baud rate is supposed to be 115200
+  //  docs say BRR should have 17.375 (17 | 0b0110)
+  //  but the clock source doesn't seem to be quite at
+  // 16 MHz so its currently set a little faster to
+  // try to better match 115200
 
-  NVIC->ISER[1] = 1<<6;
-  // NVIC->ISER[1] = 1<<(USART2_IRQn - 32);
+  RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
+  // RCC->APB1ENR |= RCC_APB1ENR_USART2EN;
 
-  USART2->CR1 |= USART_CR1_UE;
-  USART2->CR1 &= ~(USART_CR1_OVER8 | USART_CR1_M | USART_CR1_PCE
+  // NVIC->ISER[1] = 1<<6;
+  NVIC->ISER[1] = 1<<(USART1_IRQn - 31);
+  // NVIC->ISER[1] = 1<<(USART2_IRQn - 31);
+
+  USART1->CR1 |= USART_CR1_UE;
+  USART1->CR1 &= ~(USART_CR1_OVER8 | USART_CR1_M | USART_CR1_PCE
       | USART_CR1_PEIE | USART_CR1_TCIE);
-  USART2->CR1 |= (/*USART_CR1_TXEIE |*/ USART_CR1_RXNEIE /*| USART_CR1_IDLEIE*/);
+  USART1->CR1 |= (/*USART_CR1_TXEIE |*/ USART_CR1_RXNEIE | USART_CR1_IDLEIE);
 
-  USART2->CR2 &= ~(USART_CR2_LINEN | USART_CR2_STOP | USART_CR2_CLKEN);
+  USART1->CR2 &= ~(USART_CR2_LINEN | USART_CR2_STOP | USART_CR2_CLKEN);
 
-  USART2->CR3 &= ~(USART_CR3_HDSEL);
+  USART1->CR3 &= ~(USART_CR3_HDSEL);
 
-  USART2->BRR &= ~(USART_BRR_DIV_Mantissa | USART_BRR_DIV_Fraction);
-  USART2->BRR |= (8<<4) | (0b1011);
+  // XXX this may change with different clock source
+  USART1->BRR = (15<<4) | (0b0000);
 
-   USART2->CR1 |= USART_CR1_TE | USART_CR1_RE;
+  USART1->CR1 |= USART_CR1_TE | USART_CR1_RE;
+  USART1->DR = 0;
 }
 
 void FDDusart_timer_init() {
@@ -50,17 +69,15 @@ void FDDusart_timer_init() {
 
   TIM4->CR1 &= ~(TIM_CR1_CKD | TIM_CR1_ARPE | TIM_CR1_CMS | TIM_CR1_DIR
       | TIM_CR1_OPM | TIM_CR1_UDIS);
-  TIM4->CR1 |= TIM_CR1_URS;
+  // TIM4->CR1 |= TIM_CR1_URS;
 
-  // TIM3->SMCR &= ~(TIM_SMCR_ECE | TIM_SMCR_ETPS | TIM_SMCR_MSM | TIM_SMCR_SMS);
-
-  TIM4->DIER &= ~(TIM_DIER_TDE);
+  // TIM4->DIER &= ~(TIM_DIER_TDE);
   TIM4->DIER |= TIM_DIER_UIE;
 
-  TIM4->EGR |= TIM_EGR_UG;
+  // TIM4->EGR |= TIM_EGR_UG;
 
   TIM4->PSC = 16000 - 1;   // 16,000,000 / 1600 = 10000
-  TIM4->ARR = 10000 - 1;   // 10000 / 1000 = 10
+  TIM4->ARR = 100000 - 1;   // 10000 / 10000 = 1
 
   TIM4->CR1 |= TIM_CR1_CEN;
 }
