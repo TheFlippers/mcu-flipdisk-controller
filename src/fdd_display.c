@@ -1,5 +1,57 @@
 #include "fdd_display.h"
 
+const int RC[49][2] = {
+  {3, 2},
+  {5, 4},
+  {1, 6},
+  {5, 2},
+  {3, 3},
+  {4, 1},
+  {1, 5},
+  {6, 1},
+  {5, 5},
+  {0, 6},
+  {5, 0},
+  {6, 4},
+  {6, 2},
+  {0, 4},
+  {3, 0},
+  {0, 1},
+  {2, 5},
+  {3, 6},
+  {2, 1},
+  {0, 2},
+  {5, 6},
+  {0, 5},
+  {1, 2},
+  {6, 6},
+  {4, 4},
+  {5, 1},
+  {2, 3},
+  {0, 0},
+  {4, 2},
+  {6, 5},
+  {6, 0},
+  {1, 3},
+  {1, 0},
+  {3, 5},
+  {2, 4},
+  {4, 0},
+  {1, 4},
+  {1, 1},
+  {4, 6},
+  {2, 6},
+  {3, 4},
+  {4, 5},
+  {0, 3},
+  {2, 0},
+  {6, 3},
+  {2, 2},
+  {3, 1},
+  {4, 3},
+  {5, 3}
+};
+
 void FDDdisplay_init() {
   FDDdisplay_GPIO_init();
   FDDdisplay_timer_init();
@@ -111,7 +163,9 @@ void FDDdisplay_draw(uint8_t* prev, uint8_t* next) {
       while((TIM2->CR1 & TIM_CR1_CEN) || (TIM5->CR1 & TIM_CR1_CEN));
 
       if(to_black[i] & pos) {
+        // BSRRH corresponds to reset output
         GPIOC->BSRRH = 0xffff;
+        // BSRRL corresponds to set output
         GPIOC->BSRRL = (i<<10) | (j<<5);
         TIM2->CR1 |= TIM_CR1_CEN;
       } else if (to_white[i] & pos) {
@@ -143,8 +197,7 @@ void FDDdisplay_full(uint8_t* prev, uint8_t* next) {
   uint8_t to_white[7];
 
   for(int i=0; i<7; ++i) {
-    // uint8_t pos = 0b01000000;
-    uint8_t pos = 0b00000001;
+    uint8_t pos = 0b00000010;
 
     for(int j=0; j<7; ++j) {
       to_black[i] = prev[i] & ~next[i];
@@ -154,11 +207,11 @@ void FDDdisplay_full(uint8_t* prev, uint8_t* next) {
           || (TIM5->CR1 & TIM_CR1_CEN)
           || (TIM3->CR1 & TIM_CR1_CEN)
       );
-      // for(int k=0; k<5000; k++);
 
-      // no else because pixel may not need updated
       if(to_black[i] & pos) {
+        // BSRRH corresponds to reset output
         GPIOC->BSRRH = 0xffff;
+        // BSRRL corresponds to set output
         GPIOC->BSRRL = (i<<10) | (j<<5);
         TIM2->CR1 |= TIM_CR1_CEN;
       } else if (to_white[i] & pos) {
@@ -172,6 +225,70 @@ void FDDdisplay_full(uint8_t* prev, uint8_t* next) {
       pos = pos<<1;
     }
     GPIOC->BSRRH = 0xffff;
+  }
+}
+
+void FDDdisplay_dither(uint8_t* prev, uint8_t* next) {
+  uint8_t to_black, to_white;
+  for (int i = 0; i < sizeof(RC) / sizeof(RC[0]); ++i) {
+    // This should take care of setting up to_black and to_white if that pixel
+    // is supposed to be changed to either of those colors
+    // position is not needed because it is replaced with the last value of in
+    // the following bitwise and. This is done because the position doesn't
+    // just increment as it was done in the previous draw functions.
+                                                // 0b00000010
+    to_black = prev[RC[i][0]] & ~next[RC[i][0]] & (2<<RC[i][1]);
+    to_white = ~prev[RC[i][0]] & next[RC[i][0]] & (2<<RC[i][1]);
+
+    while((TIM2->CR1 & TIM_CR1_CEN)
+        || (TIM5->CR1 & TIM_CR1_CEN)
+    );
+
+    if(to_black) {
+      // BSRRH corresponds to reset output
+      GPIOC->BSRRH = (0b111<<10) | (0b111<<5);
+      // BSRRL corresponds to set output
+      GPIOC->BSRRL = (RC[i][0]<<10) | (RC[i][1]<<5);
+      TIM2->CR1 |= TIM_CR1_CEN;
+    } else if (to_white) {
+      GPIOC->BSRRH = (0b111<<10) | (0b111<<5);
+      GPIOC->BSRRL = (RC[i][0]<<10) | (RC[i][1]<<5);
+      TIM5->CR1 |= TIM_CR1_CEN;
+    }
+  }
+}
+
+void FDDdisplay_fdither(uint8_t* prev, uint8_t* next) {
+  uint8_t to_black, to_white;
+  for (int i = 0; i < sizeof(RC) / sizeof(RC[0]); ++i) {
+    // This should take care of setting up to_black and to_white if that pixel
+    // is supposed to be changed to either of those colors
+    // position is not needed because it is replaced with the last value of in
+    // the following bitwise and. This is done because the position doesn't
+    // just increment as it was done in the previous draw functions.
+                                                // 0b00000010
+    to_black = prev[RC[i][0]] & ~next[RC[i][0]] & (2<<RC[i][1]);
+    to_white = ~prev[RC[i][0]] & next[RC[i][0]] & (2<<RC[i][1]);
+
+    while((TIM2->CR1 & TIM_CR1_CEN)
+        || (TIM5->CR1 & TIM_CR1_CEN)
+        || (TIM3->CR1 & TIM_CR1_CEN)
+    );
+
+    if(to_black) {
+      // BSRRH corresponds to reset output
+      GPIOC->BSRRH = (0b111<<10) | (0b111<<5);
+      // BSRRL corresponds to set output
+      GPIOC->BSRRL = (RC[i][0]<<10) | (RC[i][1]<<5);
+      TIM2->CR1 |= TIM_CR1_CEN;
+    } else if (to_white) {
+      GPIOC->BSRRH = (0b111<<10) | (0b111<<5);
+      GPIOC->BSRRL = (RC[i][0]<<10) | (RC[i][1]<<5);
+      TIM5->CR1 |= TIM_CR1_CEN;
+    } else {
+      GPIOC->BSRRH = (0b111<<10) | (0b111<<5);
+      TIM3->CR1 |= TIM_CR1_CEN;
+    }
   }
 }
 

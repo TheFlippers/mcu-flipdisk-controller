@@ -11,19 +11,19 @@
 #include "stm32f4xx.h"
 #include "main.h"
 
-// TODO change these to be very apparent what is sent
-uint8_t NEIGHBORS[5] = { 0, 0x02, 0x03, 0x04, 0 };
+// NEIGHBORS[0] is own id
+// XXX first neighbor byte is self id: change this for different display
+// controllers
+uint8_t NEIGHBORS[5] = { 0x12, 0x02, 0x03, 0x04, 0 };
 uint8_t PIXELS[MAX_ROWS] = { 0 };
 // uint8_t ID = 0;
-uint8_t NEI_POS = 0;
-uint8_t N_POS = 0;
-uint8_t P_POS = 0;
+uint8_t RECV_NPOS = 0;    // receive neighbor array position
+uint8_t SEND_NPOS = 0;    // send neighbor array position
+uint8_t RECV_PPOS = 0;    // receive pixel position
 uint8_t UPDATE = 0;
 enum SPI_STATE RECV_STATE = IDLE;
 
 int main(void) {
-  // XXX first neighbor byte is self id: change this for different display
-  // controllers
   // TODO fix flow to process first byte from pi
 
   uint8_t next[7] = { 0 };
@@ -31,22 +31,22 @@ int main(void) {
 
   FDDdisplay_init();
   FDDspi_spi_init();
-  // FDDusart_init();
+  FDDusart_init();
 
   FDDdisplay_draw(prev, next);
+
   for (int i = 0; i < 7; ++i) {
     prev[i] = next[i];
   }
   for (;;) {
     if (UPDATE) {
-      P_POS = 0;
-      N_POS = 0;
+      RECV_PPOS = 0;
       UPDATE = 0;
 
       for (int i = 0; i < 7; ++i) {
         next[i] = PIXELS[i + 1];
       }
-      FDDdisplay_full(prev, next);
+      FDDdisplay_fdither(prev, next);
       // DMA1->LIFCR = DMA_LIFCR_CTCIF3;
       for (int i = 0; i < 7; ++i) {
         prev[i] = next[i];
@@ -97,10 +97,10 @@ void SPI2_IRQHandler() {
       }
       if (status & SPI_SR_TXE) {
         // SPI2->DR = 0;
-        SPI2->DR = NEIGHBORS[N_POS++];
-        if (N_POS == 5) {
+        SPI2->DR = NEIGHBORS[SEND_NPOS++];
+        if (SEND_NPOS == 5) {
           RECV_STATE = IDLE;
-          N_POS = 0;
+          SEND_NPOS = 0;
         }
       }
       break;
@@ -111,10 +111,10 @@ void SPI2_IRQHandler() {
         __attribute__((unused)) uint8_t read = SPI2->DR;
       }
       if (status & SPI_SR_TXE) {
-        SPI2->DR = NEIGHBORS[N_POS++];
-        if (N_POS == 5) {
+        SPI2->DR = NEIGHBORS[SEND_NPOS++];
+        if (SEND_NPOS == 5) {
           RECV_STATE = IDLE;
-          N_POS = 0;
+          SEND_NPOS = 0;
         }
       }
       break;
@@ -122,9 +122,10 @@ void SPI2_IRQHandler() {
 
     case (RECV_PIX): {
       if (status & SPI_SR_RXNE) {
-        SPI2->DR = NEIGHBORS[P_POS++];
-        if (N_POS == 7) {
-          N_POS = 0;
+        // SPI2->DR = NEIGHBORS[P_POS++];
+        PIXELS[RECV_PPOS++] = SPI2->DR;
+        if (RECV_PPOS == 7) {
+          RECV_PPOS = 0;
           UPDATE = 1;
           RECV_STATE = IDLE;
         }
@@ -158,19 +159,19 @@ void USART2_IRQHandler() {
   uint32_t status = USART2->SR;
 
   if (status & USART_SR_RXNE) {
-    NEIGHBORS[NEI_POS++] = USART2->DR;
-    if (NEI_POS == 5) {
-      NEI_POS = 1;
+    NEIGHBORS[RECV_NPOS++] = USART2->DR;
+    if (RECV_NPOS == 5) {
+      RECV_NPOS = 1;
     }
-
-    // GPIOA->ODR = GPIOA->IDR ^ (1<<5);
+    GPIOB->BSRRH = 0b11 << 3;
+    GPIOB->BSRRL = RECV_NPOS << 3;
   }
 }
 
 void TIM4_IRQHandler() {
   TIM4->SR &= ~(TIM_SR_UIF);
-  if (USART2->SR & USART_SR_TC) {
-    USART2->DR = NEIGHBORS[0];
+  if (USART1->SR & USART_SR_TC) {
+    // USART2->SR &= ~USART_SR_TC;
+    USART1->DR = NEIGHBORS[0];
   }
-  GPIOA->ODR = GPIOA->IDR ^ (1 << 5);
 }
