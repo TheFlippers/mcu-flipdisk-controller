@@ -24,8 +24,6 @@ uint8_t UPDATE = 0;
 enum SPI_STATE RECV_STATE = IDLE;
 
 int main(void) {
-  // TODO fix flow to process first byte from pi
-
   uint8_t next[7] = { 0 };
   uint8_t prev[7] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
@@ -33,11 +31,25 @@ int main(void) {
   FDDspi_spi_init();
   FDDusart_init();
 
-  FDDdisplay_draw(prev, next);
+  FDDdisplay_full(next, prev);
+  FDDdisplay_full(prev, next);
 
   for (int i = 0; i < 7; ++i) {
     prev[i] = next[i];
   }
+
+  next[1] = 0b10000000;
+  FDDdisplay_fdither(prev, next);
+  while (!UPDATE) {
+    int pos[2] = { 1, 0 };
+    int momentum[2] = { 1, 1 };
+    for (int i = 0; i < 7; ++i) {
+      prev[i] = next[i];
+    }
+    FDDpatterns_bounce(prev, next, momentum, pos);
+    FDDdisplay_fdither(prev, next);
+  }
+
   for (;;) {
     if (UPDATE) {
       RECV_PPOS = 0;
@@ -161,15 +173,11 @@ void USART1_IRQHandler() {
 
   if (status & USART_SR_RXNE) {
     NEIGHBORS[RECV_NPOS++] = USART2->DR;
-    if (RECV_NPOS == 5) {
-      RECV_NPOS = 1;
-    }
-    GPIOB->BSRRH = 0b11 << 3;
-    GPIOB->BSRRL = RECV_NPOS << 3;
   } else if (status & USART_SR_IDLE) {
     USART1->SR &= ~USART_SR_IDLE;
     NEIGHBORS[RECV_NPOS++] = 0;
   }
+
   if (RECV_NPOS == 5) {
     RECV_NPOS = 1;
   }

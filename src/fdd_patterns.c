@@ -1,37 +1,18 @@
 #include "fdd_patterns.h"
 
-void FDDdesign_ccol_lr(uint8_t* prev, uint8_t* next) {
-  for (int j=0; j<7; ++j) { // col
-    for (int i=0; i<7; ++i) { // row
-      FDDunset_pixel(prev, next, j, i);
-    }
-    FDDdisplay_draw(prev, next);
-  }
-}
+void FDDpatterns_bounce(uint8_t* prev, uint8_t* next, int* momentum, int* pos) {
+  next[pos[0]] = 0;
 
-void FDDdesign_crow_lr(uint8_t* prev, uint8_t* next) {
-  for (int i=0; i<7; ++i) { // row
-    for (int j=0; j<7; ++j) { // col
-      FDDunset_pixel(prev, next, j, i);
+  for (int i=0; i<2; ++i) {
+    pos[i] += momentum[i];
+    if (pos[i] >= 7) {
+      pos -= 7;
+      momentum[i] = -momentum[i];
+    } else if (pos[i] < 0) {
+      pos[i] = -pos[i];
+      momentum[i] = -momentum[i];
     }
-    FDDdisplay_draw(prev, next);
   }
-}
 
-void FDDdesign_wcol_lr(uint8_t* prev, uint8_t* next) {
-  for (int j=0; j<7; ++j) { // col
-    for (int i=0; i<7; ++i) { // row
-      FDDset_pixel(prev, next, j, i);
-    }
-    FDDdisplay_draw(prev, next);
-  }
-}
-
-void FDDdesign_wrow_lr(uint8_t* prev, uint8_t* next) {
-  for (int i=0; i<7; ++i) { // row
-    for (int j=0; j<7; ++j) { // col
-      FDDset_pixel(prev, next, j, i);
-    }
-    FDDdisplay_draw(prev, next);
-  }
+  next[pos[0]] = 0x80 >> pos[1];
 }
