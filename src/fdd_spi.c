@@ -7,8 +7,8 @@ void FDDspi_spi_init() {
 
 void FDDspi_GPIO_init() {
   // gpio for spi communication
-  // PB10 => SPI2_SCK
-  // PB12 => SPI2_NSS
+  // PB10 => SPI2_SCK ==> white
+  // PB12 => SPI2_NSS ==> blue
   RCC->AHB1ENR |= RCC_AHB1ENR_GPIOBEN;
 
   GPIOB->MODER &= ~(GPIO_MODER_MODER10 | GPIO_MODER_MODER12);
@@ -23,8 +23,8 @@ void FDDspi_GPIO_init() {
 
   GPIOB->OSPEEDR |= 0b11<<(2*10) | 0b11<<(2*12);
 
-  // PC2 => SPI2_MISO
-  // PC3 => SPI2_MOSI
+  // PC2 => SPI2_MISO ==> grey
+  // PC3 => SPI2_MOSI ==> purple
   RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
 
   GPIOC->MODER &= ~(GPIO_MODER_MODER2 | GPIO_MODER_MODER3);
