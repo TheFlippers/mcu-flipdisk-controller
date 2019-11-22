@@ -14,7 +14,8 @@
 // NEIGHBORS[0] is own id
 // XXX first neighbor byte is self id: change this for different display
 // controllers
-uint8_t NEIGHBORS[5] = { 0x12, 0x02, 0x03, 0x04, 0 };
+uint8_t NEIGHBORS[5] = { 0 };
+// uint8_t NEIGHBORS[5] = { 0x12, 0x02, 0x03, 0x04, 0 };
 uint8_t PIXELS[MAX_ROWS] = { 0 };
 // uint8_t ID = 0;
 uint8_t RECV_NPOS = 0;    // receive neighbor array position
@@ -169,20 +170,17 @@ void SPI2_IRQHandler() {
 
 // TODO need to move to next position if no signals detected
 void USART1_IRQHandler() {
-  uint32_t status = USART2->SR;
+  uint32_t status = USART1->SR;
 
   if (status & USART_SR_RXNE) {
-    NEIGHBORS[RECV_NPOS++] = USART2->DR;
-  } else if (status & USART_SR_IDLE) {
-    USART1->SR &= ~USART_SR_IDLE;
-    NEIGHBORS[RECV_NPOS++] = 0;
+    NEIGHBORS[RECV_NPOS++] = USART1->DR;
   }
 
   if (RECV_NPOS == 5) {
     RECV_NPOS = 1;
   }
   GPIOB->BSRRH = 0b11 << 3;
-  GPIOB->BSRRL = RECV_NPOS << 3;
+  GPIOB->BSRRL = (RECV_NPOS - 1) << 3;
 }
 
 void TIM4_IRQHandler() {
