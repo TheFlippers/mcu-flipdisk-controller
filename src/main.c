@@ -12,12 +12,11 @@
 #include "main.h"
 
 // NEIGHBORS[0] is own id
-// XXX first neighbor byte is self id: change this for different display
-// controllers
 uint8_t NEIGHBORS[5] = { 0 };
 // uint8_t NEIGHBORS[5] = { 0x12, 0x02, 0x03, 0x04, 0 };
 uint8_t PIXELS[MAX_ROWS] = { 0 };
 // uint8_t ID = 0;
+uint8_t WAIT_CNT = 0;
 uint8_t RECV_NPOS = 0;    // receive neighbor array position
 uint8_t SEND_NPOS = 0;    // send neighbor array position
 uint8_t RECV_PPOS = 0;    // receive pixel position
@@ -174,6 +173,7 @@ void USART1_IRQHandler() {
 
   if (status & USART_SR_RXNE) {
     NEIGHBORS[RECV_NPOS++] = USART1->DR;
+    WAIT_CNT = 0;
   }
 
   if (RECV_NPOS == 5) {
@@ -188,5 +188,12 @@ void TIM4_IRQHandler() {
   if (USART1->SR & USART_SR_TC) {
     // USART2->SR &= ~USART_SR_TC;
     USART1->DR = NEIGHBORS[0];
+  }
+  ++WAIT_CNT;
+  if (WAIT_CNT >= 3) {
+    WAIT_CNT = 0;
+    if (NEIGHBORS[RECV_NPOS] == 0) {
+      ++RECV_NPOS;
+    }
   }
 }
