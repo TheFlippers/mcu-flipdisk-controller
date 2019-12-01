@@ -1,6 +1,7 @@
 #include "fdd_display.h"
 
-const int RC[49][2] = {
+const int RC[59][2] = {
+// const int RC[64][2] = {
   {3, 2},
   {5, 4},
   {1, 6},
@@ -49,7 +50,23 @@ const int RC[49][2] = {
   {2, 2},
   {3, 1},
   {4, 3},
-  {5, 3}
+  {5, 3} /* ,
+
+  {0, 7},
+  {1, 7},
+  {2, 7},
+  {3, 7},
+  {4, 7},
+  {5, 7},
+  {6, 7},
+  {7, 7},
+  {7, 6},
+  {7, 5},
+  {7, 4},
+  {7, 3},
+  {7, 2},
+  {7, 1},
+  {7, 0} */
 };
 
 void FDDdisplay_init() {
@@ -154,9 +171,9 @@ void FDDdisplay_draw(uint8_t* prev, uint8_t* next) {
 
   for(int i=0; i<7; ++i) {
     // uint8_t pos = 0b01000000;
-    int pos = 1;
+    int pos = 2;
 
-    for(int j=0; j<8; ++j) {
+    for(int j=0; j<7; ++j) {
       to_black[i] = prev[i] & ~next[i];
       to_white[i] = ~prev[i] & next[i];
 
@@ -197,9 +214,11 @@ void FDDdisplay_full(uint8_t* prev, uint8_t* next) {
   uint8_t to_white[7];
 
   for(int i=0; i<7; ++i) {
+  // for(int j=0; j<7; ++j) {
     uint8_t pos = 0b00000010;
 
     for(int j=0; j<7; ++j) {
+    // for(int i=0; i<7; ++i) {
       to_black[i] = prev[i] & ~next[i];
       to_white[i] = ~prev[i] & next[i];
 
@@ -260,7 +279,7 @@ void FDDdisplay_dither(uint8_t* prev, uint8_t* next) {
 
 void FDDdisplay_fdither(uint8_t* prev, uint8_t* next) {
   uint8_t to_black, to_white;
-  for (int i = 0; i < sizeof(RC) / sizeof(RC[0]); ++i) {
+  for (int i = 0; i < 59; ++i) {
     // This should take care of setting up to_black and to_white if that pixel
     // is supposed to be changed to either of those colors
     // position is not needed because it is replaced with the last value of in
@@ -277,8 +296,8 @@ void FDDdisplay_fdither(uint8_t* prev, uint8_t* next) {
 
     if(to_black) {
       // BSRRH corresponds to reset output
-      GPIOC->BSRRH = (0b111<<10) | (0b111<<5);
       // BSRRL corresponds to set output
+      GPIOC->BSRRH = (0b111<<10) | (0b111<<5);
       GPIOC->BSRRL = (RC[i][0]<<10) | (RC[i][1]<<5);
       TIM2->CR1 |= TIM_CR1_CEN;
     } else if (to_white) {
@@ -288,6 +307,39 @@ void FDDdisplay_fdither(uint8_t* prev, uint8_t* next) {
     } else {
       GPIOC->BSRRH = (0b111<<10) | (0b111<<5);
       TIM3->CR1 |= TIM_CR1_CEN;
+    }
+  }
+  // for (int i=0; i<50000; i++);
+}
+
+void FDDdisplay_drawallthedotswhite() {
+  for (int i=0; i<7; ++i) {
+    for (int j=0; j<7; ++j) {
+      while((TIM2->CR1 & TIM_CR1_CEN)
+          || (TIM5->CR1 & TIM_CR1_CEN)
+          || (TIM3->CR1 & TIM_CR1_CEN)
+      );
+      for (int k=0; k<1000000; k++);
+      GPIOC->BSRRH = (0b111<<10) | (0b111<<5);
+      GPIOC->BSRRL = (i<<10) | (j<<5);
+      TIM5->CR1 |= TIM_CR1_CEN;
+
+    }
+  }
+}
+
+void FDDdisplay_drawallthedotsblack() {
+  for (int i=0; i<7; ++i) {
+    for (int j=0; j<7; ++j) {
+      while((TIM2->CR1 & TIM_CR1_CEN)
+          || (TIM5->CR1 & TIM_CR1_CEN)
+          || (TIM3->CR1 & TIM_CR1_CEN)
+      );
+      for (int k=0; k<1000000; k++);
+      GPIOC->BSRRH = (0b111<<10) | (0b111<<5);
+      GPIOC->BSRRL = (i<<10) | (j<<5);
+      TIM2->CR1 |= TIM_CR1_CEN;
+
     }
   }
 }

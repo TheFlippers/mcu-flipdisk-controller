@@ -36,6 +36,8 @@ void FDDdisplay_draw(uint8_t*, uint8_t*);
 void FDDdisplay_full(uint8_t*, uint8_t*);
 void FDDdisplay_dither(uint8_t*, uint8_t*);
 void FDDdisplay_fdither(uint8_t*, uint8_t*);
+void FDDdisplay_drawallthedotswhite();
+void FDDdisplay_drawallthedotsblack();
 
 // utility functions for updating display
 void FDDset_pixel(uint8_t*, uint8_t*, int, int);
