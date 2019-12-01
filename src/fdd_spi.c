@@ -8,7 +8,7 @@ void FDDspi_spi_init() {
 void FDDspi_GPIO_init() {
   // gpio for spi communication
   // PB10 => SPI2_SCK ==> white
-  // PB12 => SPI2_NSS ==> blue
+  // PB12 => SPI2_NSS ==> black
   RCC->AHB1ENR |= RCC_AHB1ENR_GPIOBEN;
 
   GPIOB->MODER &= ~(GPIO_MODER_MODER10 | GPIO_MODER_MODER12);
