@@ -31,23 +31,28 @@ int main(void) {
   FDDspi_spi_init();
   FDDusart_init();
 
-  FDDdisplay_full(next, prev);
-  FDDdisplay_full(prev, next);
+  // FDDdisplay_full(next, prev);
+  // FDDdisplay_full(prev, next);
 
-  for (int i = 0; i < 7; ++i) {
-    prev[i] = next[i];
-  }
+  // for (int i = 0; i < 7; ++i) {
+  //   prev[i] = next[i];
+  // }
 
-  next[1] = 0b10000000;
-  FDDdisplay_fdither(prev, next);
+  // next[1] = 0b10000000;
+  // FDDdisplay_fdither(prev, next);
   while (!UPDATE) {
-    int pos[2] = { 1, 0 };
-    int momentum[2] = { 1, 1 };
-    for (int i = 0; i < 7; ++i) {
-      prev[i] = next[i];
-    }
-    FDDpatterns_bounce(prev, next, momentum, pos);
-    FDDdisplay_fdither(prev, next);
+    // int pos[2] = { 1, 0 };
+    // int momentum[2] = { 1, 1 };
+    // for (int i = 0; i < 7; ++i) {
+    //   prev[i] = next[i];
+    // }
+    // FDDpatterns_bounce(prev, next, momentum, pos);
+    // FDDdisplay_full(prev, next);
+    // for (int i=0; i<5000000; i++);
+    // FDDdisplay_full(next, prev);
+    // for (int i=0; i<5000000; i++);
+    // FDDdisplay_drawallthedotswhite();
+    // FDDdisplay_drawallthedotsblack();
   }
 
   for (;;) {
@@ -58,7 +63,8 @@ int main(void) {
       for (int i = 0; i < 7; ++i) {
         next[i] = PIXELS[i + 1];
       }
-      FDDdisplay_fdither(prev, next);
+      FDDdisplay_full(prev, next);
+      // FDDdisplay_fdither(prev, next);
       // DMA1->LIFCR = DMA_LIFCR_CTCIF3;
       for (int i = 0; i < 7; ++i) {
         prev[i] = next[i];
