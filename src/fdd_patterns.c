@@ -16,3 +16,7 @@ void FDDpatterns_bounce(uint8_t* prev, uint8_t* next, int* momentum, int* pos) {
 
   next[pos[0]] = 0x80 >> pos[1];
 }
+
+void FDDpatterns_circle(uint8_t* prev, uint8_t* next, int posx, int posy) {
+  //
+}

@@ -5,6 +5,7 @@
 #include "fdd_display.h"
 
 void FDDpatterns_bounce(uint8_t*, uint8_t*, int*, int*);
+void FDDpatterns_circle(uint8_t*, uint8_t*, int, int);
 
 #ifdef __FDD_NUMBERS_H
 uint8_t numbers[15][7] = {
