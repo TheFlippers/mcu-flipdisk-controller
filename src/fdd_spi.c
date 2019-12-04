@@ -33,6 +33,9 @@ void FDDspi_GPIO_init() {
   GPIOC->AFR[0] &= ~(0xF<<(4*2) | 0xF<<(4*3));
   GPIOC->AFR[0] |= (5<<(4*2)) | (5<<(4*3));
 
+ // GPIOC->PUPDR &= ~GPIO_PUPDR_PUPDR2;
+ // GPIOC->PUPDR |= GPIO_PUPDR_PUPDR2_1;
+
   GPIOC->OSPEEDR |= 0b11<<(2*2) | 0b11<<(2*3);
 }
 
@@ -55,6 +58,7 @@ void FDDspi_slave_init() {
   SPI2->CR2 |= SPI_CR2_TXEIE | SPI_CR2_RXNEIE;
 
   SPI2->CR1 |= SPI_CR1_SPE;
+  SPI2->DR = 0xFF;
 }
 
 void FDDspi_slave_wDMA_init() {

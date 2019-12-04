@@ -78,7 +78,7 @@ void FDDusart_timer_init() {
   // TIM4->EGR |= TIM_EGR_UG;
 
   TIM4->PSC = 16000 - 1;   // 16,000,000 / 16000 = 1000
-  TIM4->ARR = 4000 - 1;   // 1000 / 2000 = .25 s
+  TIM4->ARR = 16000 - 1;   // 1000 / 16000 = .0625 s
 
   TIM4->CR1 |= TIM_CR1_CEN;
 }
