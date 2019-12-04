@@ -12,10 +12,10 @@
 #include "main.h"
 
 // NEIGHBORS[0] is own id
-uint8_t NEIGHBORS[5] = { 0 };
-// uint8_t NEIGHBORS[5] = { 0x12, 0x02, 0x03, 0x04, 0 };
+// uint8_t NEIGHBORS[4] = { 0 };
+// uint8_t MYID = 1;
+uint8_t NEIGHBORS[MAX_ROWS] = { 0, 2, 3, 4, 5 };
 uint8_t PIXELS[MAX_ROWS] = { 0 };
-// uint8_t ID = 0;
 uint8_t WAIT_CNT = 0;
 uint8_t RECV_NPOS = 0;    // receive neighbor array position
 uint8_t SEND_NPOS = 0;    // send neighbor array position
@@ -24,15 +24,27 @@ uint8_t UPDATE = 0;
 enum SPI_STATE RECV_STATE = IDLE;
 
 int main(void) {
+  uint8_t clear_black[7] = { 0 };
+  uint8_t clear_white[7] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+
   uint8_t next[7] = { 0 };
-  uint8_t prev[7] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+  uint8_t prev[7] = { 0 };
 
   FDDdisplay_init();
   FDDspi_spi_init();
   FDDusart_init();
 
-  // FDDdisplay_full(next, prev);
-  // FDDdisplay_full(prev, next);
+  FDDdisplay_fdither(clear_black, clear_white);
+  for (int i=0; i<1000000; i++);
+
+  FDDdisplay_fdither(clear_white, clear_black);
+  for (int i=0; i<1000000; i++);
+
+  FDDdisplay_fdither(clear_black, clear_white);
+  for (int i=0; i<1000000; i++);
+
+  FDDdisplay_fdither(clear_white, clear_black);
+  for (int i=0; i<1000000; i++);
 
   // for (int i = 0; i < 7; ++i) {
   //   prev[i] = next[i];
@@ -41,18 +53,20 @@ int main(void) {
   // next[1] = 0b10000000;
   // FDDdisplay_fdither(prev, next);
   while (!UPDATE) {
-    // int pos[2] = { 1, 0 };
-    // int momentum[2] = { 1, 1 };
-    // for (int i = 0; i < 7; ++i) {
-    //   prev[i] = next[i];
-    // }
-    // FDDpatterns_bounce(prev, next, momentum, pos);
-    // FDDdisplay_full(prev, next);
-    // for (int i=0; i<5000000; i++);
-    // FDDdisplay_full(next, prev);
-    // for (int i=0; i<5000000; i++);
-    // FDDdisplay_drawallthedotswhite();
-    // FDDdisplay_drawallthedotsblack();
+    FDDpatterns_circle(next);
+    FDDdisplay_dither(prev, next);
+    for (int i = 0; i < 7; ++i) {
+      prev[i] = next[i];
+    }
+    for (int i=0; i<100000; i++);
+  }
+
+  FDDdisplay_fdither(clear_black, clear_white);
+  FDDdisplay_fdither(clear_white, clear_black);
+
+  for (int i=0; i < 7; ++i) {
+    next[i] = 0;
+    prev[i] = 0;
   }
 
   for (;;) {
@@ -61,10 +75,10 @@ int main(void) {
       UPDATE = 0;
 
       for (int i = 0; i < 7; ++i) {
-        next[i] = PIXELS[i + 1];
+        next[i] = PIXELS[i];
       }
-      FDDdisplay_full(prev, next);
-      // FDDdisplay_fdither(prev, next);
+      // FDDdisplay_full(prev, next);
+      FDDdisplay_fdither(prev, next);
       // DMA1->LIFCR = DMA_LIFCR_CTCIF3;
       for (int i = 0; i < 7; ++i) {
         prev[i] = next[i];
@@ -73,6 +87,78 @@ int main(void) {
   }
 }
 
+void SPI2_IRQHandler() {
+  uint16_t status = SPI2->SR;
+  switch (RECV_STATE) {
+    case (IDLE): {
+      int ctrl = -1;
+      if (status & SPI_SR_RXNE) {
+       ctrl = SPI2->DR;
+      }
+      if (status & SPI_SR_TXE) {
+        SPI2->DR = 0;
+      }
+
+      // Set next state based on ctrl byte
+      switch (ctrl) {
+        case (POST_PIXELS): {
+          RECV_STATE = RECV_PIX;
+          break;
+        }
+
+        case (POST_DISPID): {
+          RECV_STATE = RECV_ID;
+          break;
+        }
+
+        default: {
+          RECV_STATE = IDLE;
+          RECV_PPOS = 0;
+          SEND_NPOS = 0;
+        }
+      }
+      break;
+    }
+
+    case (RECV_PIX): {
+      if (status & SPI_SR_RXNE) {
+        // SPI2->DR = NEIGHBORS[P_POS++];
+        PIXELS[RECV_PPOS++] = SPI2->DR;
+        if (RECV_PPOS == 7) {
+          RECV_PPOS = 0;
+          UPDATE = 1;
+          RECV_STATE = IDLE;
+        }
+      }
+      if (status & SPI_SR_TXE) {
+        SPI2->DR = NEIGHBORS[SEND_NPOS++];
+        SEND_NPOS %= 8;
+      }
+      break;
+    }
+
+    case (RECV_ID): {
+      if (status & SPI_SR_RXNE) {
+        // SPI2->DR = NEIGHBORS[0];
+        // ID = SPI2->DR;
+        NEIGHBORS[0] = SPI2->DR;
+        RECV_STATE = IDLE;
+      }
+      if (status & SPI_SR_TXE) {
+        SPI2->DR = 0;
+      }
+      break;
+    }
+
+    default: {
+      RECV_STATE = IDLE;
+      RECV_PPOS = 0;
+      SEND_NPOS = 0;
+    }
+  }
+}
+
+/*
 void SPI2_IRQHandler() {
   uint16_t status = SPI2->SR;
   switch (RECV_STATE) {
@@ -102,6 +188,7 @@ void SPI2_IRQHandler() {
 
         default: {
           RECV_STATE = IDLE;
+          SEND_NPOS = 0;
         }
       }
       break;
@@ -114,12 +201,9 @@ void SPI2_IRQHandler() {
         __attribute__((unused)) uint8_t read = SPI2->DR;
       }
       if (status & SPI_SR_TXE) {
-        // SPI2->DR = 0;
-        SPI2->DR = NEIGHBORS[SEND_NPOS++];
-        if (SEND_NPOS == 5) {
-          RECV_STATE = IDLE;
-          SEND_NPOS = 0;
-        }
+        // uint8_t self_id = NEIGHBORS[0];
+        SPI2->DR = MYID;
+        RECV_STATE = SEND_NEIGH;
       }
       break;
     }
@@ -130,7 +214,7 @@ void SPI2_IRQHandler() {
       }
       if (status & SPI_SR_TXE) {
         SPI2->DR = NEIGHBORS[SEND_NPOS++];
-        if (SEND_NPOS == 5) {
+        if (SEND_NPOS == 4) {
           RECV_STATE = IDLE;
           SEND_NPOS = 0;
         }
@@ -158,7 +242,7 @@ void SPI2_IRQHandler() {
       if (status & SPI_SR_RXNE) {
         // SPI2->DR = NEIGHBORS[0];
         // ID = SPI2->DR;
-        NEIGHBORS[0] = SPI2->DR;
+        MYID = SPI2->DR;
         RECV_STATE = IDLE;
       }
       if (status & SPI_SR_TXE) {
@@ -172,21 +256,23 @@ void SPI2_IRQHandler() {
     }
   }
 }
+*/
 
 // TODO need to move to next position if no signals detected
 void USART1_IRQHandler() {
   uint32_t status = USART1->SR;
 
   if (status & USART_SR_RXNE) {
-    NEIGHBORS[RECV_NPOS++] = USART1->DR;
+    // NEIGHBORS[RECV_NPOS] = USART1->DR;
+    RECV_NPOS = RECV_NPOS + 1;
+    if (RECV_NPOS == 5) {
+      RECV_NPOS = 1;
+    }
     WAIT_CNT = 0;
   }
 
-  if (RECV_NPOS == 5) {
-    RECV_NPOS = 1;
-  }
   GPIOB->BSRRH = 0b11 << 3;
-  GPIOB->BSRRL = (RECV_NPOS - 1) << 3;
+  GPIOB->BSRRL = RECV_NPOS << 3;
 }
 
 void TIM4_IRQHandler() {
@@ -195,11 +281,24 @@ void TIM4_IRQHandler() {
     // USART2->SR &= ~USART_SR_TC;
     USART1->DR = NEIGHBORS[0];
   }
+
+  // Check if neighbors are present after 3 timer counts
+  // TODO This needs to be smarter to support `live` reconfiguring
+  // maybe store most recent one in value in static variable and if it's the
+  // same after 3 receives, then change it back to zero
   ++WAIT_CNT;
   if (WAIT_CNT >= 3) {
     WAIT_CNT = 0;
-    if (NEIGHBORS[RECV_NPOS] == 0) {
-      ++RECV_NPOS;
+    // TODO This can be set back to check only 0 for normal operation
+    if (NEIGHBORS[RECV_NPOS] == 0
+        || NEIGHBORS[RECV_NPOS] == 3) {
+      // NEIGHBORS[RECV_NPOS] = 3;
+      RECV_NPOS = RECV_NPOS + 1;
+      if (RECV_NPOS == 5) {
+        RECV_NPOS = 1;
+      }
+      GPIOB->BSRRH = 0b11 << 3;
+      GPIOB->BSRRL = RECV_NPOS << 3;
     }
   }
 }
