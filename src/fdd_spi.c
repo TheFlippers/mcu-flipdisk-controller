@@ -55,10 +55,10 @@ void FDDspi_slave_init() {
       | SPI_CR1_RXONLY | SPI_CR1_SSM | SPI_CR1_LSBFIRST | SPI_CR1_BR
       | SPI_CR1_MSTR | SPI_CR1_CPOL | SPI_CR1_CPHA);
 
-  SPI2->CR2 |= SPI_CR2_TXEIE | SPI_CR2_RXNEIE;
+  SPI2->CR2 |= /*SPI_CR2_TXEIE |*/ SPI_CR2_RXNEIE;
 
   SPI2->CR1 |= SPI_CR1_SPE;
-  SPI2->DR = 0xFF;
+  // SPI2->DR = 0xFF;
 }
 
 void FDDspi_slave_wDMA_init() {

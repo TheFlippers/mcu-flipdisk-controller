@@ -12,14 +12,12 @@
 #include "main.h"
 
 // NEIGHBORS[0] is own id
-// uint8_t NEIGHBORS[4] = { 0 };
-// uint8_t MYID = 1;
-uint8_t NEIGHBORS[MAX_ROWS] = { 0, 2, 3, 4, 5 };
-uint8_t PIXELS[MAX_ROWS] = { 0 };
-uint8_t WAIT_CNT = 0;
-uint8_t RECV_NPOS = 0;    // receive neighbor array position
-uint8_t SEND_NPOS = 0;    // send neighbor array position
-uint8_t RECV_PPOS = 0;    // receive pixel position
+// uint8_t NEIGHBORS[MAX_ROWS] = { 0, 2, 3, 4, 5 };
+uint8_t PIXELS[MAX_ROWS + 1] = { 0 };
+// uint8_t WAIT_CNT = 0;
+// uint8_t RECV_NPOS = 0;    // receive neighbor array position
+// uint8_t SEND_NPOS = 0;    // send neighbor array position
+// uint8_t RECV_PPOS = 0;    // receive pixel position
 uint8_t UPDATE = 0;
 enum SPI_STATE RECV_STATE = IDLE;
 
@@ -32,7 +30,7 @@ int main(void) {
 
   FDDdisplay_init();
   FDDspi_spi_init();
-  FDDusart_init();
+  // FDDusart_init();
 
   FDDdisplay_fdither(clear_black, clear_white);
   for (int i=0; i<1000000; i++);
@@ -71,11 +69,11 @@ int main(void) {
 
   for (;;) {
     if (UPDATE) {
-      RECV_PPOS = 0;
       UPDATE = 0;
 
       for (int i = 0; i < 7; ++i) {
-        next[i] = PIXELS[i];
+        // XXX if pixels gets set back to 7 remve the +1!!!
+        next[i] = PIXELS[i + 1];
       }
       // FDDdisplay_full(prev, next);
       FDDdisplay_fdither(prev, next);
@@ -87,6 +85,17 @@ int main(void) {
   }
 }
 
+void SPI2_IRQHandler() {
+  static uint8_t pos = 0;
+  PIXELS[pos] = SPI2->DR;
+  ++pos;
+  if (pos == 8) {
+    pos = 0;
+    UPDATE = 1;
+  }
+}
+
+/*
 void SPI2_IRQHandler() {
   uint16_t status = SPI2->SR;
   switch (RECV_STATE) {
@@ -157,6 +166,7 @@ void SPI2_IRQHandler() {
     }
   }
 }
+*/
 
 /*
 void SPI2_IRQHandler() {
@@ -259,6 +269,7 @@ void SPI2_IRQHandler() {
 */
 
 // TODO need to move to next position if no signals detected
+/*
 void USART1_IRQHandler() {
   uint32_t status = USART1->SR;
 
@@ -302,3 +313,4 @@ void TIM4_IRQHandler() {
     }
   }
 }
+*/
